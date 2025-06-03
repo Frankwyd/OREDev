@@ -67,12 +67,31 @@ Docs/UserGuide/userguide.pdf
 ##########################
 # Examples
 ##########################
+# Exclude all files in Examples directory
+Examples/*
+# But keep the directory structure and specific files
+!Examples/*/
+!Examples/*/Input/
+!Examples/*/Input/*.xml
+!Examples/*/Input/*.json
+!Examples/*/Input/*.txt
+!Examples/*/Scripts/
+!Examples/*/Scripts/*.py
+!Examples/*/Scripts/*.R
+!Examples/README.md
+!Examples/*/README.md
+
+# Explicitly exclude output directories and generated files
+Examples/*/Output/
 Examples/Example_?/Output/
 Examples/Example_[0-9][0-9]/Output/
-# these are generated
+Examples/*/Output/*.csv
+Examples/*/Output/log.txt
+Examples/*/Output/*.pdf
 Examples/Example_26/Input/EUR_xois_portfolio.xml
 Examples/Example_26/Input/USD_xois_portfolio.xml
 Examples/Example_26/Input/ois_portfolio.xml
+Examples/**/pricingstats.csv
 
 ##################
 # XCode files
