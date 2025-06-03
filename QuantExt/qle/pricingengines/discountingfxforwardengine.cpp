@@ -26,10 +26,12 @@ namespace QuantExt {
 DiscountingFxForwardEngine::DiscountingFxForwardEngine(
     const Currency& ccy1, const Handle<YieldTermStructure>& currency1Discountcurve, const Currency& ccy2,
     const Handle<YieldTermStructure>& currency2Discountcurve, const Handle<Quote>& spotFX,
-    boost::optional<bool> includeSettlementDateFlows, const Date& settlementDate, const Date& npvDate)
+    boost::optional<bool> includeSettlementDateFlows, const Date& settlementDate, const Date& npvDate,
+    bool skipNotionalCurrencyAssignment)
     : ccy1_(ccy1), currency1Discountcurve_(currency1Discountcurve), ccy2_(ccy2),
       currency2Discountcurve_(currency2Discountcurve), spotFX_(spotFX),
-      includeSettlementDateFlows_(includeSettlementDateFlows), settlementDate_(settlementDate), npvDate_(npvDate) {
+      includeSettlementDateFlows_(includeSettlementDateFlows), settlementDate_(settlementDate), npvDate_(npvDate),
+      skipNotionalCurrencyAssignment_(skipNotionalCurrencyAssignment) {
     registerWith(currency1Discountcurve_);
     registerWith(currency2Discountcurve_);
     registerWith(spotFX_);
@@ -161,23 +163,24 @@ void DiscountingFxForwardEngine::calculate() const {
         results_.additionalResults["legNPV[2]"] = (tmpPayCurrency1 ? -1.0 : 1.0) * discFar / discNear * (-tmpNominal2 / fx2);
 
         // set notional
-        if (arguments_.isPhysicallySettled) {
-            // Align notional with ISDA AANA/GRID guidance as of November 2020 for deliverable forwards
-            if (tmpNominal1 > tmpNominal2 * fxfwd) {
-                results_.additionalResults["currentNotional"] = tmpNominal1;
-                results_.additionalResults["notionalCurrency"] = ccy1_.code();
+        if (!skipNotionalCurrencyAssignment_) {
+            if (arguments_.isPhysicallySettled) {
+                // Align notional with ISDA AANA/GRID guidance as of November 2020 for deliverable forwards
+                if (tmpNominal1 > tmpNominal2 * fxfwd) {
+                    results_.additionalResults["currentNotional"] = tmpNominal1;
+                    results_.additionalResults["notionalCurrency"] = ccy1_.code();
+                } else {
+                    results_.additionalResults["currentNotional"] = tmpNominal2;
+                    results_.additionalResults["notionalCurrency"] = ccy2_.code();
+                }
             } else {
-                results_.additionalResults["currentNotional"] = tmpNominal2;
-                results_.additionalResults["notionalCurrency"] = ccy2_.code();
+                // for cash settled forwards we take the notional from the settlement ccy leg
+                results_.additionalResults["currentNotional"] =
+                    arguments_.currency1 == arguments_.payCcy ? arguments_.nominal1 : arguments_.nominal2;
+                results_.additionalResults["notionalCurrency"] = arguments_.payCcy.code();
             }
-        } else {
-            // for cash settled forwards we take the notional from the settlement ccy leg
-            results_.additionalResults["currentNotional"] =
-                arguments_.currency1 == arguments_.payCcy ? arguments_.nominal1 : arguments_.nominal2;
-            results_.additionalResults["notionalCurrency"] = arguments_.payCcy.code();
         }
     }
-
-} // calculate
+}
 
 } // namespace QuantExt

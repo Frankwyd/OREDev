@@ -67,6 +67,7 @@ int main(int argc, char** argv) {
     }
 
     if (argc != 2) {
+        std::cout << endl << "Hello ORE to test ccache" << endl << endl;
         std::cout << endl << "usage: ORE path/to/ore.xml" << endl << endl;
         return -1;
     }

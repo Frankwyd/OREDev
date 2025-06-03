@@ -25,9 +25,16 @@
 
 #include <ored/portfolio/trade.hpp>
 #include <ored/portfolio/tradefactory.hpp>
+//#include <map>
+//#include <string>
+
+//using std::string;
+//using std::map;
 
 namespace ore {
 namespace data {
+
+
 
 //! Serializable FX Forward
 /*!
@@ -64,6 +71,13 @@ public:
     const string& fxIndex() const { return fxIndex_; }
     const string& paymentDate() const { return payDate_; }
     //@}
+    
+    //! Set the notional currency based on currency priority rules
+    void clsaSetNotionalCurrency();
+
+    //! Set the notional amount
+    void clsaSetNotional();
+   
 
     //! \name Serialisation
     //@{

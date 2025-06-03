@@ -65,6 +65,9 @@ void FxForward::build(const QuantLib::ext::shared_ptr<EngineFactory>& engineFact
 
     // The notional and notional ccy will be set in the engine anyway,
     // but we also set this here as a default/fallback in case the engine builder fails.
+    clsaSetNotionalCurrency();
+    clsaSetNotional();
+    /*
     if (settlement_ == "Physical") {
         notional_ = soldAmount_;
         notionalCurrency_ = soldCurrency_;
@@ -73,6 +76,7 @@ void FxForward::build(const QuantLib::ext::shared_ptr<EngineFactory>& engineFact
         notional_ = soldCcy == payCcy ? soldAmount_ : boughtAmount_;
         notionalCurrency_ = payCcy.code();
     }
+    */
 
     Date maturityDate = parseDate(maturityDate_);
 
@@ -257,5 +261,106 @@ XMLNode* FxForward::toXML(XMLDocument& doc) const {
 
     return node;
 }
+
+/*
+void FxForward::clsaSetNotionalCurrency_old() {
+    static const std::map<std::string, int> currencyPriority = {
+        {"EUR", 100}, {"GBP", 99}, {"AUD", 98}, {"NZD", 97}, 
+        {"USD", 96}, {"CHF", 95}, {"CAD", 94}, {"NOK", 93},
+        {"HKD", 80}, {"SGD", 79}, {"TWD", 78},
+        {"CNH", 50}, {"CNY", 49},
+        {"KRW", 1}, {"JPY", 0}
+    };
+    
+    // Get priority for both currencies
+    auto boughtPriority = currencyPriority.find(boughtCurrency_);
+    auto soldPriority = currencyPriority.find(soldCurrency_);
+    
+    // If both currencies are in our priority map
+    if (boughtPriority != currencyPriority.end() && soldPriority != currencyPriority.end()) {
+        // Choose the currency with higher priority
+        notionalCurrency_ = (boughtPriority->second >= soldPriority->second) ? 
+                          boughtCurrency_ : soldCurrency_;
+    } else if (boughtPriority != currencyPriority.end()) {
+        // If only bought currency is in map, use it
+        notionalCurrency_ = boughtCurrency_;
+    } else if (soldPriority != currencyPriority.end()) {
+        // If only sold currency is in map, use it
+        notionalCurrency_ = soldCurrency_;
+    } else {
+        // If neither currency is in map, default to bought currency
+        notionalCurrency_ = boughtCurrency_;
+    }
+}
+*/
+
+void FxForward::clsaSetNotionalCurrency() {
+    // 定义货币对和对应的强势货币
+    static const std::map<std::string, std::string> currencyPairPriority = {
+        // USD pairs
+        {"USDJPY", "USD"}, {"JPYUSD", "USD"}, {"USDCNH", "USD"}, {"CNHUSD", "USD"},
+        {"USDKRW", "USD"}, {"KRWUSD", "USD"}, {"USDHKD", "USD"}, {"HKDUSD", "USD"},
+        {"USDSGD", "USD"}, {"SGDUSD", "USD"}, {"USDTWD", "USD"}, {"TWDUSD", "USD"},
+        
+        // EUR pairs
+        {"EURUSD", "EUR"}, {"USDEUR", "EUR"}, {"EURJPY", "EUR"}, {"JPYEUR", "EUR"},
+        {"EURGBP", "EUR"}, {"GBPEUR", "EUR"}, {"EURAUD", "EUR"}, {"AUDEUR", "EUR"},
+        {"EURNZD", "EUR"}, {"NZDEUR", "EUR"}, {"EURCHF", "EUR"}, {"CHFEUR", "EUR"},
+        
+        // GBP pairs
+        {"GBPUSD", "GBP"}, {"USDGBP", "GBP"}, {"GBPJPY", "GBP"}, {"JPYGBP", "GBP"},
+        {"GBPAUD", "GBP"}, {"AUDGBP", "GBP"}, {"GBPNZD", "GBP"}, {"NZDGBP", "GBP"},
+        {"GBPCHF", "GBP"}, {"CHFGBP", "GBP"},
+        
+        // AUD pairs
+        {"AUDUSD", "AUD"}, {"USDAUD", "AUD"}, {"AUDJPY", "AUD"}, {"JPYAUD", "AUD"},
+        {"AUDNZD", "AUD"}, {"NZDAUD", "AUD"}, {"AUDCHF", "AUD"}, {"CHFAUD", "AUD"},
+        
+        // NZD pairs
+        {"NZDUSD", "NZD"}, {"USDNZD", "NZD"}, {"NZDJPY", "NZD"}, {"JPYNZD", "NZD"},
+        {"NZDCHF", "NZD"}, {"CHFNZD", "NZD"},
+        
+        // CHF pairs
+        {"USDCHF", "USD"}, {"CHFUSD", "USD"}, {"CHFJPY", "CHF"}, {"JPYCHF", "CHF"}
+    };
+    
+    // 组合买入和卖出货币形成货币对
+    std::string currencyPair = boughtCurrency_ + soldCurrency_;
+    
+    // 在映射表中查找货币对
+    auto it = currencyPairPriority.find(currencyPair);
+    
+    if (it != currencyPairPriority.end()) {
+        // 如果找到对应的货币对，使用映射的强势货币
+        notionalCurrency_ = it->second;
+        //DLOG("Currency pair " << currencyPair << " found in priority map. Setting notional currency to " << notionalCurrency_);
+    } else {
+        // 如果没有找到对应的货币对，默认使用买入货币
+        notionalCurrency_ = boughtCurrency_;
+        
+        // 使用 ALOG 记录警告信息
+        ALOG("Warning: Currency pair " << currencyPair << " not found in priority map. "
+             << "Defaulting to bought currency " << boughtCurrency_ << " as notional currency. "
+             << "Consider adding this currency pair to the priority map.");
+    }
+}
+void FxForward::clsaSetNotional() {
+    // Set notional based on the notional currency
+    if (notionalCurrency_ == boughtCurrency_) {
+        // If notional currency matches bought currency, use bought amount
+        notional_ = std::abs(boughtAmount_);
+    } else if (notionalCurrency_ == soldCurrency_) {
+        // If notional currency matches sold currency, use sold amount
+        notional_ = std::abs(soldAmount_);
+    } else {
+        // If notional currency doesn't match either (shouldn't happen after clsaSetNotionalCurrency),
+        // default to bought amount as fallback
+        notional_ = std::abs(boughtAmount_);
+        ALOG("Warning: notionalCurrency_ " << notionalCurrency_ << " matches neither boughtCurrency_ " 
+             << boughtCurrency_ << " nor soldCurrency_ " << soldCurrency_ 
+             << ". Defaulting to boughtAmount.");
+    }
+}
+
 } // namespace data
 } // namespace ore

@@ -59,12 +59,15 @@ public:
         \param npvDate
                Discount to this date. If not given the npv date
                is set to the evaluation date
+        \param skipNotionalCurrencyAssignment
+               If true, skip the notional currency assignment in results
     */
     DiscountingFxForwardEngine(const Currency& ccy1, const Handle<YieldTermStructure>& currency1Discountcurve,
                                const Currency& ccy2, const Handle<YieldTermStructure>& currency2Discountcurve,
                                const Handle<Quote>& spotFX,
                                boost::optional<bool> includeSettlementDateFlows = boost::none,
-                               const Date& settlementDate = Date(), const Date& npvDate = Date());
+                               const Date& settlementDate = Date(), const Date& npvDate = Date(),
+                               bool skipNotionalCurrencyAssignment = true);
 
     void calculate() const override;
 
@@ -86,6 +89,7 @@ private:
     boost::optional<bool> includeSettlementDateFlows_;
     Date settlementDate_;
     Date npvDate_;
+    bool skipNotionalCurrencyAssignment_;
 };
 } // namespace QuantExt
 
