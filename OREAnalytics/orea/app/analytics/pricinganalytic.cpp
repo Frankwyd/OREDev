@@ -208,41 +208,50 @@ void PricingAnalyticImpl::runAnalytic(
             analytic()->reports()[type]["sensitivity_config"] = simmSensitivityConfigReport;
 
             if (inputs_->parSensi()) {
-                LOG("Sensi analysis - par conversion");
+                
+                if (inputs_->directParShift()) {
+                    LOG("Sensi analysis - direct par shift");
+                    CONSOLE("use direct Parshift");
 
-                if (inputs_->optimiseRiskFactors()){
-                    std::set<RiskFactorKey> collectRiskFactors;
-                    // collect risk factors of all cubes ...
-                    for(auto const& c : sensiAnalysis->sensiCubes()){
-                        auto currentRF = c->relevantRiskFactors();
-                        // ... and combine for the par analysis
-                        collectRiskFactors.insert(currentRF.begin(), currentRF.end());
-                    }
-                    parAnalysis->relevantRiskFactors() = collectRiskFactors;
-                    LOG("optimiseRiskFactors active : parSensi risk factors set to zeroSensi risk factors");
-                }
-                parAnalysis->computeParInstrumentSensitivities(sensiAnalysis->simMarket());
-                QuantLib::ext::shared_ptr<ParSensitivityConverter> parConverter =
-                    QuantLib::ext::make_shared<ParSensitivityConverter>(parAnalysis->parSensitivities(), parAnalysis->shiftSizes());
-                auto parCube = QuantLib::ext::make_shared<ZeroToParCube>(sensiAnalysis->sensiCubes(), parConverter, typesDisabled, true);
-                LOG("Sensi analysis - write par sensitivity report in memory");
-                QuantLib::ext::shared_ptr<ParSensitivityCubeStream> pss =
-                    QuantLib::ext::make_shared<ParSensitivityCubeStream>(parCube, baseCurrency);
-                // If the stream is going to be reused - wrap it into a buffered stream to gain some
-                // performance. The cost for this is the memory footpring of the buffer.
-                QuantLib::ext::shared_ptr<InMemoryReport> parSensiReport = QuantLib::ext::make_shared<InMemoryReport>();
-                ReportWriter(inputs_->reportNaString())
-                    .writeSensitivityReport(*parSensiReport, pss, inputs_->sensiThreshold());
-                analytic()->reports()[type]["par_sensitivity"] = parSensiReport;
+                }else{
 
-                if (inputs_->outputJacobi()) {
-                    QuantLib::ext::shared_ptr<InMemoryReport> jacobiReport = QuantLib::ext::make_shared<InMemoryReport>();
-                    writeParConversionMatrix(parAnalysis->parSensitivities(), *jacobiReport);
-                    analytic()->reports()[type]["jacobi"] = jacobiReport;
                     
-                    QuantLib::ext::shared_ptr<InMemoryReport> jacobiInverseReport = QuantLib::ext::make_shared<InMemoryReport>();
-                    parConverter->writeConversionMatrix(*jacobiInverseReport);
-                    analytic()->reports()[type]["jacobi_inverse"] = jacobiInverseReport;
+                    LOG("Sensi analysis - par conversion");
+
+                    if (inputs_->optimiseRiskFactors()){
+                        std::set<RiskFactorKey> collectRiskFactors;
+                        // collect risk factors of all cubes ...
+                        for(auto const& c : sensiAnalysis->sensiCubes()){
+                            auto currentRF = c->relevantRiskFactors();
+                            // ... and combine for the par analysis
+                            collectRiskFactors.insert(currentRF.begin(), currentRF.end());
+                        }
+                        parAnalysis->relevantRiskFactors() = collectRiskFactors;
+                        LOG("optimiseRiskFactors active : parSensi risk factors set to zeroSensi risk factors");
+                    }
+                    parAnalysis->computeParInstrumentSensitivities(sensiAnalysis->simMarket());
+                    QuantLib::ext::shared_ptr<ParSensitivityConverter> parConverter =
+                        QuantLib::ext::make_shared<ParSensitivityConverter>(parAnalysis->parSensitivities(), parAnalysis->shiftSizes());
+                    auto parCube = QuantLib::ext::make_shared<ZeroToParCube>(sensiAnalysis->sensiCubes(), parConverter, typesDisabled, true);
+                    LOG("Sensi analysis - write par sensitivity report in memory");
+                    QuantLib::ext::shared_ptr<ParSensitivityCubeStream> pss =
+                        QuantLib::ext::make_shared<ParSensitivityCubeStream>(parCube, baseCurrency);
+                    // If the stream is going to be reused - wrap it into a buffered stream to gain some
+                    // performance. The cost for this is the memory footpring of the buffer.
+                    QuantLib::ext::shared_ptr<InMemoryReport> parSensiReport = QuantLib::ext::make_shared<InMemoryReport>();
+                    ReportWriter(inputs_->reportNaString())
+                        .writeSensitivityReport(*parSensiReport, pss, inputs_->sensiThreshold());
+                    analytic()->reports()[type]["par_sensitivity"] = parSensiReport;
+
+                    if (inputs_->outputJacobi()) {
+                        QuantLib::ext::shared_ptr<InMemoryReport> jacobiReport = QuantLib::ext::make_shared<InMemoryReport>();
+                        writeParConversionMatrix(parAnalysis->parSensitivities(), *jacobiReport);
+                        analytic()->reports()[type]["jacobi"] = jacobiReport;
+                        
+                        QuantLib::ext::shared_ptr<InMemoryReport> jacobiInverseReport = QuantLib::ext::make_shared<InMemoryReport>();
+                        parConverter->writeConversionMatrix(*jacobiInverseReport);
+                        analytic()->reports()[type]["jacobi_inverse"] = jacobiInverseReport;
+                    }
                 }
             }
             else {

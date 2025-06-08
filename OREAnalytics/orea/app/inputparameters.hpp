@@ -144,6 +144,9 @@ public:
         sensiPricingEngine_ = engineData;
     }
 
+    //CLSA modif
+    void setDirectParShift(bool b) { directParShift_ = b; };
+
     // Setters for scenario
     void setScenarioSimMarketParams(const std::string& xml);
     void setScenarioSimMarketParamsFromFile(const std::string& fileName);
@@ -509,7 +512,11 @@ public:
     const QuantLib::ext::shared_ptr<ore::analytics::SensitivityScenarioData>& sensiScenarioData() const { return sensiScenarioData_; }
     const QuantLib::ext::shared_ptr<ore::data::EngineData>& sensiPricingEngine() const { return sensiPricingEngine_; }
     // const QuantLib::ext::shared_ptr<ore::data::TodaysMarketParameters>& sensiTodaysMarketParams() { return sensiTodaysMarketParams_; }
-        
+    
+    //CLSA modif
+    bool directParShift() const { return directParShift_; }
+
+
     /****************************
      * Getters for scenario build
      ****************************/
@@ -861,6 +868,10 @@ protected:
     QuantLib::ext::shared_ptr<ore::analytics::SensitivityScenarioData> sensiScenarioData_;
     QuantLib::ext::shared_ptr<ore::data::EngineData> sensiPricingEngine_;
     // QuantLib::ext::shared_ptr<ore::data::TodaysMarketParameters> sensiTodaysMarketParams_;
+    
+    //CLSA modif
+    bool directParShift_=false;
+
 
     /**********************
      * SCENARIO analytic

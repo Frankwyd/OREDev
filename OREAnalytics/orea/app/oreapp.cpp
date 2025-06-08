@@ -852,6 +852,10 @@ void OREAppInputParameters::loadParameters() {
         if (tmp != "")
             setParSensi(parseBool(tmp));
 
+        tmp = params_->get("sensitivity", "directParShift", false);
+        if (tmp != "")
+            setDirectParShift(parseBool(tmp));
+
         tmp = params_->get("sensitivity", "optimiseRiskFactors", false);
         if (tmp != "")
             setOptimiseRiskFactors(parseBool(tmp));
